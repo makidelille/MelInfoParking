@@ -1,0 +1,9 @@
+version: '3.1'
+services:
+  app:
+    image: melinforparking
+    deploy:
+      restart_policy:
+        condition: on-failure
+    env_file: 
+      - .env
