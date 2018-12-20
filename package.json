@@ -1,0 +1,18 @@
+{
+  "name": "melinfoparking",
+  "version": "1.0.0",
+  "description": "Information en temps réel sur les parkings de lille",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bluebird": "^3.5.3",
+    "express": "^4.16.4",
+    "mongodb": "^3.1.10",
+    "request": "^2.88.0",
+    "winston": "^3.1.0"
+  }
+}

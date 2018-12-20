@@ -1,0 +1,9 @@
+{
+    "mongo": {
+        "uri":"mongodb://jdonque.fr:27017/MelParkInfo",
+        "collection" : "datas"
+    },
+    "retrieve": {
+        "interval": "300000"
+    }
+}
