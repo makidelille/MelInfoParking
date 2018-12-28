@@ -1,6 +1,6 @@
 const mongo = require("mongodb").MongoClient;
 const Bluebird = require("bluebird");
-const config = require("../config/config.json");
+const config = require("../config/config");
 
 
 let apply2Collection = function(collectionName, cb){
