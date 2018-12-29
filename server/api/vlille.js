@@ -7,7 +7,12 @@ const logger  = require("../utils/logger");
 const router = express.Router();
 
 router.get("/data", (req, res) => {
-    return getData()
+    return getDataGlobal()
+        .then(data => res.json(data))
+});
+
+router.get("/data/:stationId", (req, res) => {
+    return getData(req.params.stationId)
         .then(data => res.json(data))
 });
 
@@ -21,7 +26,40 @@ router.get("/heatmap", (req, res) => {
         .then(data => res.json(data))
 });
 
-function getData(endTime = Date.now() - (43200000/2), startTime = Date.now()){
+function getData(stationid, endTime = Date.now() - (43200000), startTime = Date.now()){
+    logger.debug(`Getting data for station: ${stationid}`);
+    return new Bluebird((resolve, reject) => {
+        let start = Date.now();
+        database(config.mongo.collection, (collection) => {
+            let dataset = "vlille-realtime";
+            let $match = {
+                dataset,
+                time: {
+                    $gte: startTime,
+                    $lte: endTime
+                }
+            };
+            let $project = {
+                data: {
+                    $filter: {
+                        input: '$data',
+                        as: 'd',
+                        cond: {$eq: ['$$d.id', stationid]}
+                    }
+                }
+            };
+            return collection.aggregate([
+                {$match}, {$project}
+            ]).toArray().then(results => {
+                logger.debug(`Data fetched in ${Date.now() - start}ms`);
+                return resolve(results);
+            });
+        }).catch(err => reject(err));
+    })
+}
+
+
+function getDataGlobal(endTime = Date.now() - (43200000/2), startTime = Date.now()){
     return new Bluebird((resolve, reject) => {
         let start = Date.now();
         database(config.mongo.collection, (collection) => {
@@ -40,7 +78,7 @@ function getData(endTime = Date.now() - (43200000/2), startTime = Date.now()){
                     time: -1
                 }
             };
-            return collection.find(query).toArray().then(results => {
+            return collection.find(query).limit(1).toArray().then(results => {
                 logger.debug(`Data fetched in ${Date.now() - start}ms`);
                 return resolve(results);
             });
@@ -74,9 +112,9 @@ function getConfig()  {
     });
 }
 
-async function getHeatMap(startTime, endTime){
+async function getHeatMap(){
     let start = Date.now();
-    let datas = await getData(startTime, endTime);
+    let datas = await getDataGlobal(Date.now() - 30000, Date.now());
     let configData = await getConfig();
 
     // Agrégation des données

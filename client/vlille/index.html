@@ -5,13 +5,28 @@
     <meta name="viewport" content="initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Vlille</title>
+    <!-- <link href="/css/vlille.css" rel="stylesheet"></link> -->
+    <link href="/css/bootstrap.min.css" rel="stylesheet"></link>
 </head>
-<body>
-<div id="map"></div>
+<body class="container">
+    <div class="row"></div>
+    <div class="row">
+        <div class="col p-0 m-1">
+            <div id="map" class="w-100" style="height: 800px"></div>
+        </div>
+    </div>
+    <div class="row my-1">
+        <h1 class="">Infos dans ce champs</h1>
+        <div id="infos">
+
+        </div>
+    </div>
 
     
 </body>
+<script src="/js/vlille.js" async defer></script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDY156eaKSVsg7MfgJF8ADHzsf9QmJYRew&callback=initMap"
 async defer></script>
-<script src="/js/vlille.js"></script>
+<script src="/js/bootstrap.min.js" async defer></script>
+<script src="/js/bootstrap.bundle.min.js" async defer></script>
 </html>

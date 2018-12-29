@@ -1,17 +1,28 @@
-const express = require("express");
-
-const config =require("./config/config");
 const logger = require("./utils/logger");
-const core = require("./core/retrieve");
-const api = require("./api");
-
+const config =require("./config/config");
 logger.info("init");
 
-logger.info("start retreiver");
-// core.start();
-// core.stop();
+let args = process.argv;
+let APP_MODE = true;
+
+args.forEach(arg => {
+    if(arg.indexOf('--get') != -1){
+        APP_MODE = false;
+    }
+});
+
+if(!APP_MODE){
+    logger.info("starting retriever");
+    const core = require("./core/retrieve");
+    core.start();
+    return;
+} 
 
 
+logger.info("starting server");
+
+const express = require("express");
+const api = require("./api");
 const app = express();
 
 app.use((req, res, next) => {

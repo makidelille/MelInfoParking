@@ -15,10 +15,9 @@ function getData(set){
             return transform;
         }).then(dataArray => {
             // push en bdd
-            return db(config.mongo.collection, collection => collection.insertOne({
-                dataset : set.name,
+            return db(set.name, collection => collection.insertOne({
                 time: Date.now(),
-                data: dataArray
+                values: dataArray
             }));
         }).then(res => {
             logger.info(`[${set.name}] data pushed to db`);

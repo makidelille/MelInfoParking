@@ -3,37 +3,49 @@ var map;
 
 function loadData (cb){
     var req = new XMLHttpRequest();
-    req.onload = function(ev){
-        try{
-            stations =JSON.parse(req.responseText)
-        } catch( e){
-            console.error(e);
+    req.onreadystatechange = function(ev){
+        if(this.readyState === XMLHttpRequest.DONE) {
+            try{
+                stations = JSON.parse(this.responseText).data;
+                cb(stations);
+            } catch( e){
+                console.error(e);
+            }
+
         }
     };
     req.open("GET", "/config.json");
+    req.send();
     
 }
 
 function initMap (){
-    loadData(function(){
+    console.log("hello");
+    loadData(function(stations){
+        console.log("hello2")
         map = new google.maps.Map(document.getElementById('map'), {
             center: {lat: 50.693768, lng: 3.16766},
-            zoom: 15
+            zoom: 12
           });
           
-        for(var station in stations){
-            var marker = new google.maps.Marker({
+
+        var makers = stations.map(function(station){
+            var m =  new google.maps.Marker({
                 position: {
                     lat: station.geo_lat,
                     lng: station.geo_lng 
                 },
                 map: map,
-                title: station.nom_station
+                title: station.nom_station,
+                clickable: true
             });
 
+            m.addListener('click', onMarkerClick(station));
+            return m;
+        });
 
-            marker.onclick = onMarkerClick(station);
-        }
+
+        
     });
 
 
@@ -44,8 +56,8 @@ function initMap (){
 }
 
 function onMarkerClick(station){
-    return function(){
-        // todo load hisotry of station
+    return function(ev){
+        console.log(ev, station);
     };
 }
 
