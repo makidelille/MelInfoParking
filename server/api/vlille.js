@@ -11,8 +11,13 @@ router.get("/data", (req, res) => {
         .then(data => res.json(data))
 });
 
-router.get("/data/:stationId", (req, res) => {
-    return getData(req.params.stationId)
+router.get("/history/:stationId", (req, res) => {
+    let stationid = Number.parseInt(req.params.stationId);
+    if(isNaN(stationid)){
+        throw {status: 400, msg: "InvalidNumberFormat"};
+    }
+
+    return getData(stationid)
         .then(data => res.json(data))
 });
 
@@ -26,31 +31,50 @@ router.get("/heatmap", (req, res) => {
         .then(data => res.json(data))
 });
 
-function getData(stationid, endTime = Date.now() - (43200000), startTime = Date.now()){
+function getData(stationid, endTime = Date.now() - 43200000, startTime = Date.now()){
     logger.debug(`Getting data for station: ${stationid}`);
     return new Bluebird((resolve, reject) => {
         let start = Date.now();
-        database(config.mongo.collection, (collection) => {
-            let dataset = "vlille-realtime";
+        let dataset = "vlille-realtime";
+        database(dataset, (collection) => {
             let $match = {
-                dataset,
                 time: {
-                    $gte: startTime,
-                    $lte: endTime
+                    $lte: startTime,
+                    $gte: endTime
                 }
+            };
+            let $sort= {
+                time: 1
             };
             let $project = {
-                data: {
-                    $filter: {
-                        input: '$data',
-                        as: 'd',
-                        cond: {$eq: ['$$d.id', stationid]}
-                    }
+                _id: 0,
+                time: 1,
+                value: {
+                    $arrayElemAt : [
+                        {
+                            $filter: {
+                                input: '$values',
+                                as: 'value',
+                                cond: {$eq: ['$$value.id', stationid]}
+                            }
+                        },
+                        0
+                    ]
+                    
                 }
             };
-            return collection.aggregate([
-                {$match}, {$project}
-            ]).toArray().then(results => {
+            return new Bluebird((subresolve, subreject) => {
+                collection.aggregate(
+                    {$match},
+                    {$project},
+                    {$sort},
+                    (err, data) => {
+                        if(err) return subreject(err);
+                        else {
+                            return subresolve(data.toArray());
+                        }
+                    });
+            }).then(results => {
                 logger.debug(`Data fetched in ${Date.now() - start}ms`);
                 return resolve(results);
             });
@@ -62,23 +86,20 @@ function getData(stationid, endTime = Date.now() - (43200000), startTime = Date.
 function getDataGlobal(endTime = Date.now() - (43200000/2), startTime = Date.now()){
     return new Bluebird((resolve, reject) => {
         let start = Date.now();
-        database(config.mongo.collection, (collection) => {
-            let dataset = "vlille-realtime";
-            let query = {
-                $query : {
-                    dataset
-                },
-                $min: {
-                    time: startTime
-                },
-                $max: {
-                    time: endTime
-                },
+        let dataset = "vlille-realtime";
+        database(dataset, (collection) => {
+            let $query = {
+                time: {
+                    $lte: startTime,
+                    $gte: endTime
+                }  
+            };
+            return collection.findOne({
+                $query, 
                 $orderby : {
                     time: -1
                 }
-            };
-            return collection.find(query).limit(1).toArray().then(results => {
+            }).then(results => {
                 logger.debug(`Data fetched in ${Date.now() - start}ms`);
                 return resolve(results);
             });
@@ -89,12 +110,9 @@ function getDataGlobal(endTime = Date.now() - (43200000/2), startTime = Date.now
 function getConfig()  {
     return new Bluebird((resolve, reject) => {
         let start = Date.now();
-        database(config.mongo.collection, (collection) => {
-            let dataset = "vlille-config";
+        let dataset = "vlille-config";
+        database(dataset, (collection) => {
             let query = {
-                $query : {
-                    dataset
-                },
                 $orderby : {
                     time: -1
                 }

@@ -15,18 +15,43 @@
             <div id="map" class="w-100" style="height: 800px"></div>
         </div>
     </div>
-    <div class="row my-1">
-        <h1 class="">Infos dans ce champs</h1>
-        <div id="infos">
-
-        </div>
-    </div>
-
-    
+    <hr/>
+    <div id="general">
+        <h1>Liste des stations de v'Lille <span id="count"></span></h1>
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col" onclick="sortTable('nom_station')">Nom de la station</th>
+                    <th scope="col" onclick="sortTable('tpe')">Terminal de paiement</th>
+                    <th scope="col" onclick="sortTable('adresse')">Adresse</th>
+                    <th scope="col" onclick="sortTable('geo_lat')">Latitude</th>
+                    <th scope="col" onclick="sortTable('geo_lng')">Longitude</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>    
 </body>
-<script src="/js/vlille.js" async defer></script>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDY156eaKSVsg7MfgJF8ADHzsf9QmJYRew&callback=initMap"
-async defer></script>
-<script src="/js/bootstrap.min.js" async defer></script>
-<script src="/js/bootstrap.bundle.min.js" async defer></script>
+<script src="/js/jquery-3.3.1.min.js"></script>
+<script src="/js/bootstrap.min.js"></script>
+<script src="/js/mustache.min.js"></script>
+<script src="/js/vlille.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDY156eaKSVsg7MfgJF8ADHzsf9QmJYRew&callback=initMap" async defer></script>
+
+<!--- templates -->
+<script id="tpl-station" type="x-tmpl-mustache">
+    <tr onclick="window.location = 'info#' + {{id}}" id="{{id}}">
+        <td scope="row">{{index}}</td>
+        <td>{{nom_station}}</td>
+        <td>{{tpe}}</td>
+        <td>{{adresse}}</td>
+        <td>{{geo_lat}}</td>
+        <td>{{geo_lng}}</td>
+    </tr>
+</script>
+
+
+
 </html>
