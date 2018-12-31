@@ -2,6 +2,7 @@ var BASE_URL = "http://localhost:3000/api/vlille/";
 
 
 var map;
+var stationid;
 var inv = false;
 var sortField = "nom_station";
 
@@ -12,10 +13,10 @@ function getData(url, cb){
         if(this.readyState === XMLHttpRequest.DONE) {
             try{
                 data = JSON.parse(this.responseText);
-                cb(null, data);
             } catch( e){
-                cb(e);
+                return cb(e);
             }
+            cb(null, data);
 
         }
     };
@@ -23,13 +24,13 @@ function getData(url, cb){
     req.send();
 }
 
-function loadData (cb){
-    getData("/config.json", function(err, raw){
+function loadAllData(cb){
+    getData(BASE_URL + "config", function(err, stations){
         if(err) {
             console.error(err);
             return;
         }
-        var stations = raw.data;
+
         stations = stations.map(function(st){
             st.tpe = st.type === "AVEC TPE" ? "Oui" : "Non";
             return st;
@@ -39,23 +40,89 @@ function loadData (cb){
     });
 }
 
-function initMap (){
-    switch(window.pathname){
-        case "/vlille/info":
-            map = new google.maps.Map(document.getElementById('map'), {
-                center: {lat: 50.693768, lng: 3.16766},
-                zoom: 12
-            });
+function loadData(stationId, cb){
+    getData(BASE_URL + "config/" + stationId, function(err, stations){
+        if(err) {
+            console.error(err);
+            return;
+        }
 
+        stations = stations.map(function(st){
+            st.tpe = st.type === "AVEC TPE" ? "Oui" : "Non";
+            return st;
+        });
+        
+        cb(stations);
+    });
+}
+
+var heatMap;
+function initMap (){
+    var hash = window.location.hash;
+    if(hash != ""){
+        stationid = Number.parseInt(hash.replace("#", ""));
+        if(isNaN(stationid)){
+            console.warn("invalid stationid");
+            stationid = undefined;
+        }
+    }
+    map = new google.maps.Map(document.getElementById('map'), {
+        center: {lat: 50.693768, lng: 3.16766},
+        zoom: 12
+    });
+
+    heatMap = new google.maps.visualization.HeatmapLayer({
+        map: map,
+        dissipating: true,
+        radius: 20
+    });
+
+
+    switch(window.location.pathname){
+        case "/vlille/heatmap":
+            loadHeatMap(function(heat){
+                console.log(heat);
+                var pointsPlaces = [];
+                var pointsVelos = [];
+
+                heat.forEach(function(stationHeat){
+                    var places = stationHeat.placesdispo;
+                    var velos = stationHeat.velosdispo;
+
+                    var position =  new google.maps.LatLng(stationHeat.geo_lat, stationHeat.geo_lng);
+                    pointsPlaces.push({location: position, weight: places});
+                    pointsVelos.push({location: position, weight: velos});
+                });
+
+                heatMap.setData(pointsPlaces);
+            });
+            break;
+        case "/vlille/info":
+            loadData(stationid, function(stations){
+                var station = stations[0];
+                var m = new google.maps.Marker({
+                    position: {
+                        lat: station.geo_lat,
+                        lng: station.geo_lng 
+                    },
+                    map: map,
+                    title: station.nom_station,
+                    clickable: true
+                });
+
+                map.panTo({
+                    lat: station.geo_lat,
+                    lng: station.geo_lng 
+                });
+                map.setZoom(20);
+
+                loadMarkerData(station);
+                
+            })
             return;
         case "/vlille/":
         default:
-            loadData(function(stations){
-                map = new google.maps.Map(document.getElementById('map'), {
-                    center: {lat: 50.693768, lng: 3.16766},
-                    zoom: 12
-                    });
-                
+            loadAllData(function(stations){                
                 loadGeneralInfos(stations, sortField, inv);
 
                 stations.forEach(function(station){
@@ -80,14 +147,62 @@ function initMap (){
     
 }
 
-function onMarkerClick(station){
-    return function(ev){
-        console.debug(ev, station);
-        var stationid = station.id;
-        getData(BASE_URL + "history/" + stationid, (err, data) => {
-            console.log(data);
+function loadMarkerData(station, since){
+    var stationid = station.id;
+    getData(BASE_URL + "history/" + stationid, (err, jsonData) => {
+        var placesDispoData = jsonData.map(function(d) { 
+            return { y: d.value.placesdispo, t: new Date(d.time)}
         });
-    };
+        var velosDispoData = jsonData.map(function(d) { 
+            return { y: d.value.velosdispo, t: new Date(d.time)}
+        });
+        
+        console.log(placesDispoData);
+        var ctxl = document.getElementById("lineChart").getContext('2d');
+
+        var lChart = new Chart(ctxl, {
+            type: 'line',
+            data: {
+                datasets: [{
+                    label: "Places dispo",
+                    data:placesDispoData,
+                    borderColor: "#008800",
+                    fill: false,
+                    lineTension: 0.25,
+                    pointRadius: 0
+                },
+                {
+                    label: "Velos dispo",
+                    data:velosDispoData,
+                    borderColor: "#880000",
+                    fill: false,
+                    lineTension: 0.25,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                scales: {
+                    xAxes: [{
+                        type: "time",
+                        distribution: 'linear',
+                        time: {
+                            unit: "hour",
+                            displayFormats: {
+                                hour: 'D MMM hh:mm'
+                            }
+                        }
+                    }]
+                },
+                tooltip: {
+                    intersect: false,
+
+                }
+            }
+        });
+
+        
+
+    });
 }
 
 
@@ -115,8 +230,18 @@ function sortTable(sortFieldLocal){
         sortField = sortFieldLocal;
     }
 
-    loadData(function(stations){
+    loadAllData(function(stations){
         loadGeneralInfos(stations, sortField, inverted);
     })    
 }
 
+function loadHeatMap(cb){
+    getData(BASE_URL + "/heatmap", function(err, data){
+        if(err) return err;
+        cb(data.values);
+    });
+}
+
+function animateHeatMap(){
+    
+}
