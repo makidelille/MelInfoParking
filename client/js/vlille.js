@@ -24,37 +24,6 @@ function getData(url, cb){
     req.send();
 }
 
-function loadAllData(cb){
-    getData(BASE_URL + "config", function(err, stations){
-        if(err) {
-            console.error(err);
-            return;
-        }
-
-        stations = stations.map(function(st){
-            st.tpe = st.type === "AVEC TPE" ? "Oui" : "Non";
-            return st;
-        });
-        
-        cb(stations);
-    });
-}
-
-function loadData(stationId, cb){
-    getData(BASE_URL + "config/" + stationId, function(err, stations){
-        if(err) {
-            console.error(err);
-            return;
-        }
-
-        stations = stations.map(function(st){
-            st.tpe = st.type === "AVEC TPE" ? "Oui" : "Non";
-            return st;
-        });
-        
-        cb(stations);
-    });
-}
 
 var heatMap;
 function initMap (){
@@ -71,35 +40,16 @@ function initMap (){
         zoom: 12
     });
 
-    heatMap = new google.maps.visualization.HeatmapLayer({
-        map: map,
-        dissipating: true,
-        radius: 20
-    });
+    
 
 
     switch(window.location.pathname){
         case "/vlille/heatmap":
-            loadHeatMap(function(heat){
-                console.log(heat);
-                var pointsPlaces = [];
-                var pointsVelos = [];
-
-                heat.forEach(function(stationHeat){
-                    var places = stationHeat.placesdispo;
-                    var velos = stationHeat.velosdispo;
-
-                    var position =  new google.maps.LatLng(stationHeat.geo_lat, stationHeat.geo_lng);
-                    pointsPlaces.push({location: position, weight: places});
-                    pointsVelos.push({location: position, weight: velos});
-                });
-
-                heatMap.setData(pointsPlaces);
-            });
+            loadHeatMap(showHeatMap);
             break;
         case "/vlille/info":
-            loadData(stationid, function(stations){
-                var station = stations[0];
+            loadData(stationid, function(stationInfo){
+                var station = stationInfo.config;
                 var m = new google.maps.Marker({
                     position: {
                         lat: station.geo_lat,
@@ -116,7 +66,7 @@ function initMap (){
                 });
                 map.setZoom(20);
 
-                loadMarkerData(station);
+                history2chart(stationInfo.data);
                 
             })
             return;
@@ -147,62 +97,86 @@ function initMap (){
     
 }
 
-function loadMarkerData(station, since){
-    var stationid = station.id;
-    getData(BASE_URL + "history/" + stationid, (err, jsonData) => {
-        var placesDispoData = jsonData.map(function(d) { 
-            return { y: d.value.placesdispo, t: new Date(d.time)}
-        });
-        var velosDispoData = jsonData.map(function(d) { 
-            return { y: d.value.velosdispo, t: new Date(d.time)}
+function loadAllData(cb){
+    getData(BASE_URL, function(err, stations){
+        if(err) {
+            console.error(err);
+            return;
+        }
+
+        stations = stations.map(function(st){
+            st.tpe = st.type === "AVEC TPE" ? "Oui" : "Non";
+            return st;
         });
         
-        console.log(placesDispoData);
-        var ctxl = document.getElementById("lineChart").getContext('2d');
+        cb(stations);
+    });
+}
 
-        var lChart = new Chart(ctxl, {
-            type: 'line',
-            data: {
-                datasets: [{
-                    label: "Places dispo",
-                    data:placesDispoData,
-                    borderColor: "#008800",
-                    fill: false,
-                    lineTension: 0.25,
-                    pointRadius: 0
-                },
-                {
-                    label: "Velos dispo",
-                    data:velosDispoData,
-                    borderColor: "#880000",
-                    fill: false,
-                    lineTension: 0.25,
-                    pointRadius: 0
+function loadData(stationId, cb){
+    getData(BASE_URL + "station/" + stationId, function(err, station){
+        if(err) {
+            console.error(err);
+            return;
+        }
+
+        station.config.tpe = station.config.type === "AVEC TPE" ? "Oui" : "Non";
+
+        
+        cb(station);
+    });
+}
+
+function history2chart(jsonData){
+    var placesDispoData = jsonData.map(function(d) { 
+        return { y: d.value.placesdispo, t: new Date(d.time)}
+    });
+    var velosDispoData = jsonData.map(function(d) { 
+        return { y: d.value.velosdispo, t: new Date(d.time)}
+    });
+    
+    console.log(placesDispoData);
+    var ctxl = document.getElementById("lineChart").getContext('2d');
+
+    new Chart(ctxl, {
+        type: 'line',
+        data: {
+            datasets: [{
+                label: "Places dispo",
+                data:placesDispoData,
+                borderColor: "#008800",
+                fill: false,
+                lineTension: 0.25,
+                pointRadius: 0
+            },
+            {
+                label: "Velos dispo",
+                data:velosDispoData,
+                borderColor: "#880000",
+                fill: false,
+                lineTension: 0.25,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            scales: {
+                xAxes: [{
+                    type: "time",
+                    distribution: 'linear',
+                    time: {
+                        unit: "hour",
+                        displayFormats: {
+                            hour: 'D MMM hh:mm'
+                        }
+                    }
                 }]
             },
-            options: {
-                scales: {
-                    xAxes: [{
-                        type: "time",
-                        distribution: 'linear',
-                        time: {
-                            unit: "hour",
-                            displayFormats: {
-                                hour: 'D MMM hh:mm'
-                            }
-                        }
-                    }]
-                },
-                tooltip: {
-                    intersect: false,
+            tooltip: {
+                intersect: false,
 
-                }
             }
+        }
         });
-
-        
-
-    });
 }
 
 
@@ -236,12 +210,66 @@ function sortTable(sortFieldLocal){
 }
 
 function loadHeatMap(cb){
-    getData(BASE_URL + "/heatmap", function(err, data){
+    getData(BASE_URL + "/heatmap/now", function(err, data){
         if(err) return err;
         cb(data.values);
     });
 }
 
 function animateHeatMap(){
-    
+    getData(BASE_URL + "/config", function(err, conf){
+        if(err) return err;
+        console.log(conf)
+        var max = conf.max;
+        var min = conf.min;
+        var diff = 60 * 1000 * 5;
+
+        var refresh = function(time, cb){
+            getData(BASE_URL + "/heatmap/" + time, function(err, heat){
+                if(err) return cb(err);
+                showHeatMap(heat.values, false);
+                var date = new Date(time);
+                // $("#time").html(date.toLocaleDateString() + " " + date.toLocaleTimeString());
+                if(time < max){
+                    setTimeout(function(){
+                        return refresh(time + diff, cb);
+                    })
+                } else {
+                    return cb();
+                }
+            })
+        }
+        
+        refresh(min, function(err){
+            if(err){
+                console.error(err);
+            }
+            console.log("finis");
+        });
+    });
+}
+
+
+function showHeatMap(heat, velos = false){
+    if(heatMap == undefined){
+        heatMap = new google.maps.visualization.HeatmapLayer({
+            map: map,
+            dissipating: true,
+            radius: 20
+        });
+    }
+
+
+    var pointsPlaces = [];
+    var pointsVelos = [];
+    heat.forEach(function(stationHeat){
+        var places = stationHeat.placesdispo;
+        var velos = stationHeat.velosdispo;
+
+        var position =  new google.maps.LatLng(stationHeat.geo_lat, stationHeat.geo_lng);
+        pointsPlaces.push({location: position, weight: places});
+        pointsVelos.push({location: position, weight: velos});
+    });
+
+    heatMap.setData(velos ? pointsVelos : pointsPlaces);
 }

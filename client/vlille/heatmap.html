@@ -14,11 +14,28 @@
             <div id="map" class="w-100" style="height: 800px"></div>
         </div>
     </div>
+
     <hr/>
+    <div class="row">
+        <form>
+            <div class="form-group row">
+                <label for="formControlRange">Example Range input</label>
+                
+            </div>
+        </form>
+        <!-- <div class="row">
+            <button onclick="animateHeatMap()">Voir l'evolution dans le temps</button>
+        </div> -->
+    </div>
 </body>
 <script src="/js/jquery-3.3.1.min.js"></script>
 <script src="/js/bootstrap.min.js"></script>
 <script src="/js/mustache.min.js"></script>
 <script src="/js/vlille.js"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDY156eaKSVsg7MfgJF8ADHzsf9QmJYRew&callback=initMap&libraries=visualization" async defer></script>
+
+<script id="tpl-station" type="x-tmpl-mustache">
+    <input type="range" class="form-control-range" max="{{max}}" min="{{min}}" value="{{max}}" id="time">
+    
+</script>
 </html>
