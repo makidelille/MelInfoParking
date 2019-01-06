@@ -10,22 +10,18 @@
 <body class="container">
     <div class="row"></div>
     <div class="row">
-        <div class="col p-0 m-1">
-            <div id="map" class="w-100" style="height: 800px"></div>
+        <div class="col" id="options">
+            
         </div>
-    </div>
-
-    <hr/>
-    <div class="row">
-        <form>
-            <div class="form-group row">
-                <label for="formControlRange">Example Range input</label>
-                
-            </div>
-        </form>
         <!-- <div class="row">
             <button onclick="animateHeatMap()">Voir l'evolution dans le temps</button>
         </div> -->
+    </div>
+    <hr/>
+    <div class="row">
+        <div class="col p-0 m-1">
+            <div id="map" class="w-100" style="height: 800px"></div>
+        </div>
     </div>
 </body>
 <script src="/js/jquery-3.3.1.min.js"></script>
@@ -34,8 +30,16 @@
 <script src="/js/vlille.js"></script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDY156eaKSVsg7MfgJF8ADHzsf9QmJYRew&callback=initMap&libraries=visualization" async defer></script>
 
-<script id="tpl-station" type="x-tmpl-mustache">
-    <input type="range" class="form-control-range" max="{{max}}" min="{{min}}" value="{{max}}" id="time">
+<script id="tpl-slider-heatmap" type="x-tmpl-mustache">
+    <form>
+        <div class="form-group" id="slider">
+                <label for="formControlRange" id="timeLabel"></label>
+                <input type="range" class="form-control-range" max="{{max}}" min="{{min}}" value="{{max}}" id="time">
+        </div>
+        <div class="form-group">
+            <button type="button" class="btn" onclick="playHeatMap()">Avancer</button>
+        </div>
+    </form>
     
 </script>
 </html>

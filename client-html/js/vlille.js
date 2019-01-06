@@ -212,11 +212,13 @@ function sortTable(sortFieldLocal){
 function loadHeatMap(cb){
     getData(BASE_URL + "/heatmap/now", function(err, data){
         if(err) return err;
-        cb(data.values);
+        setupHeatMapAnimations(function(){
+            cb(data.values, Date.now());
+        });
     });
 }
 
-function animateHeatMap(){
+function setupHeatMapAnimations(cb){
     getData(BASE_URL + "/config", function(err, conf){
         if(err) return err;
         console.log(conf)
@@ -228,25 +230,43 @@ function animateHeatMap(){
             getData(BASE_URL + "/heatmap/" + time, function(err, heat){
                 if(err) return cb(err);
                 showHeatMap(heat.values, false);
-                var date = new Date(time);
-                // $("#time").html(date.toLocaleDateString() + " " + date.toLocaleTimeString());
-                if(time < max){
-                    setTimeout(function(){
-                        return refresh(time + diff, cb);
-                    })
-                } else {
-                    return cb();
-                }
+                
             })
         }
         
-        refresh(min, function(err){
-            if(err){
-                console.error(err);
-            }
-            console.log("finis");
+        
+        var tpl = $("#tpl-slider-heatmap").html();
+        Mustache.parse(tpl);
+        $("#options").html(Mustache.render(tpl, {max: max, min: min}));
+        
+        
+        $("#slider input").on("change", function(){
+            var date = new Date(+this.value);
+            $("#timeLabel").html(date.toLocaleDateString() + " " + date.toLocaleTimeString());
+            refresh(this.value);
         });
+        
+        var date = new Date();
+        $("#timeLabel").html(date.toLocaleDateString() + " " + date.toLocaleTimeString());
+
+        cb();
     });
+}
+
+function playHeatMap(){
+    var TIMEOUT = 5000;
+    var input = $("#slider input");
+    var current = input[0].min;
+    var max = input[0].max;
+    var interval = setInterval(function(){
+        if(current >= max){
+            clearInterval(interval);
+        } else {
+            input.val(current);
+            input.trigger('change');
+            current += TIMEOUT;
+        }
+    }, TIMEOUT);
 }
 
 
@@ -272,4 +292,6 @@ function showHeatMap(heat, velos = false){
     });
 
     heatMap.setData(velos ? pointsVelos : pointsPlaces);
+
+
 }
